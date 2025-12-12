@@ -1,6 +1,6 @@
 /* eslint-disable consistent-return */
 const express = require('express');
-const schema = require('../db/schema'); // assuming you want to keep validation
+const schema = require('../db/schema');
 
 const router = express.Router();
 
