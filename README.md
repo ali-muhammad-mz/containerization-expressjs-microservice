@@ -20,20 +20,21 @@ Clone the repo.
 https://github.com/zagaris/express-api.git
 cd express-api
 ```
-Create the .env file.
-
-```bash
-DB_URL = localhost/my-employees
-TEST_DB_URL = localhost/test-my-employees
-PORT = 5000
-```
 Install the dependencies.
 
 ```bash
 npm install
 ```
-To start the express server, run the following.
+To build the container, run the following.
+
+```cmd
+cd ..
+docker build -f src/docker/Dockerfile -t employee-api .
+docker run --name employees-service -e PORT=5000 -p 5000:5000 employee-api
+```
+
+To view the logs of the service
 
 ```bash
-npm run dev
+docker logs employees-service
 ```
