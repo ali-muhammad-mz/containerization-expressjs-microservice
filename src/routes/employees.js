@@ -1,39 +1,32 @@
 /* eslint-disable consistent-return */
 const express = require('express');
-const schema = require('../db/schema');
-const db = require('../db/connection');
-
-const employees = db.get('employees');
+const schema = require('../db/schema'); // assuming you want to keep validation
 
 const router = express.Router();
 
+// In-memory employee list
+let employees = [
+  { _id: '1', name: 'Alice', job: 'Developer' },
+  { _id: '2', name: 'Bob', job: 'Designer' },
+  { _id: '3', name: 'Charlie', job: 'Manager' },
+];
+
 /* Get all employees */
-router.get('/', async (req, res, next) => {
-  try {
-    const allEmployees = await employees.find({});
-    res.json(allEmployees);
-  } catch (error) {
-    next(error);
-  }
+router.get('/', (req, res) => {
+  res.json(employees);
 });
 
 /* Get a specific employee */
-router.get('/:id', async (req, res, next) => {
-  try {
-    const { id } = req.params;
-    const employee = await employees.findOne({
-      _id: id,
-    });
+router.get('/:id', (req, res, next) => {
+  const { id } = req.params;
+  const employee = employees.find(emp => emp._id === id);
 
-    if (!employee) {
-      const error = new Error('Employee does not exist');
-      return next(error);
-    }
-
-    res.json(employee);
-  } catch (error) {
-    next(error);
+  if (!employee) {
+    const error = new Error('Employee does not exist');
+    return next(error);
   }
+
+  res.json(employee);
 });
 
 /* Create a new employee */
@@ -42,23 +35,23 @@ router.post('/', async (req, res, next) => {
     const { name, job } = req.body;
     await schema.validateAsync({ name, job });
 
-    const employee = await employees.findOne({
-      name,
-    });
+    const existing = employees.find(emp => emp.name === name);
 
-    // Employee already exists
-    if (employee) {
+    if (existing) {
       const error = new Error('Employee already exists');
-      res.status(409); // conflict error
+      res.status(409); // conflict
       return next(error);
     }
 
-    const newuser = await employees.insert({
+    const newEmployee = {
+      _id: (employees.length + 1).toString(), // simple incremental ID
       name,
       job,
-    });
+    };
 
-    res.status(201).json(newuser);
+    employees.push(newEmployee);
+
+    res.status(201).json(newEmployee);
   } catch (error) {
     next(error);
   }
@@ -69,49 +62,38 @@ router.put('/:id', async (req, res, next) => {
   try {
     const { id } = req.params;
     const { name, job } = req.body;
-    const result = await schema.validateAsync({ name, job });
-    const employee = await employees.findOne({
-      _id: id,
-    });
+    const validatedData = await schema.validateAsync({ name, job });
 
-    // Employee does not exist
-    if (!employee) {
-      return next();
+    const index = employees.findIndex(emp => emp._id === id);
+
+    if (index === -1) {
+      const error = new Error('Employee does not exist');
+      return next(error);
     }
 
-    const updatedEmployee = await employees.update({
-      _id: id,
-    }, { $set: result },
-    { upsert: true });
+    employees[index] = { ...employees[index], ...validatedData };
 
-    res.json(updatedEmployee);
+    res.json(employees[index]);
   } catch (error) {
     next(error);
   }
 });
 
 /* Delete a specific employee */
-router.delete('/:id', async (req, res, next) => {
-  try {
-    const { id } = req.params;
-    const employee = await employees.findOne({
-      _id: id,
-    });
+router.delete('/:id', (req, res, next) => {
+  const { id } = req.params;
+  const index = employees.findIndex(emp => emp._id === id);
 
-    // Employee does not exist
-    if (!employee) {
-      return next();
-    }
-    await employees.remove({
-      _id: id,
-    });
-
-    res.json({
-      message: 'Employee has been deleted',
-    });
-  } catch (error) {
-    next(error);
+  if (index === -1) {
+    const error = new Error('Employee does not exist');
+    return next(error);
   }
+
+  employees.splice(index, 1);
+
+  res.json({
+    message: 'Employee has been deleted',
+  });
 });
 
 module.exports = router;
