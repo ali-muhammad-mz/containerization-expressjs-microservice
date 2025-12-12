@@ -1,6 +1,6 @@
-# express api
+# containerization of express api
 
-A simple REST API in Node.js
+Containerization of simple REST API in Node.js
 
 API Endpoints
 
